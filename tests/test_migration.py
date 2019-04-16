@@ -8,8 +8,13 @@
 
 """CDS migration to CDSLabs tests."""
 
+import copy
+
+import pytest
+
 from tests.helpers import load_json
 
+from cds_migrator_kit.records.errors import LossyConversion
 from cds_migrator_kit.records.records import CDSRecordDump
 
 
@@ -104,3 +109,25 @@ def test_migrate_record(datadir, base_app):
                 }
             ]
         }
+
+
+def test_collaborations(base_app, datadir):
+    """Test migrate collaborations."""
+    with base_app.app_context():
+        data = load_json(datadir, 'book_collaborations.json')
+        dump = CDSRecordDump(data=data[0])
+        dump.prepare_revisions()
+        res = dump.revisions[-1][1]
+        assert res['recid'] == 262146
+        assert len(res['collaborations']) == 1
+
+
+def test_collaborations_invalid(base_app, datadir):
+    """Test migrate invalid collaborations."""
+    with base_app.app_context():
+        data = load_json(datadir, 'book_collaborations.json')
+        with pytest.raises(LossyConversion):
+            dump = CDSRecordDump(data=data[1])
+            dump.prepare_revisions()
+            res = dump.revisions[-1][1]
+
