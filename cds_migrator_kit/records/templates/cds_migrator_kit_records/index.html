@@ -58,7 +58,9 @@
                 <a href="/record/{{ elem.record_type }}/{{ elem.recid }}_{{ index }}">View {{ index }}</a>
               {% endfor %}
             {% else %}
-              <a href="/record/{{ elem.record_type }}/{{ elem.recid }}">View</a>
+              {% if not (elem.record_type == 'serial' and not elem.exact_series) %}
+                <a href="/record/{{ elem.record_type }}/{{ elem.recid }}">View</a>
+              {% endif %}
             {% endif %}
           {% endif %}
         </td>
