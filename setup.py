@@ -56,7 +56,7 @@ install_requires = [
     'invenio-records>=1.0.0',
     'invenio-records-files>=1.0.0a10',
     'pathlib>=1.0.1',
-    'importlib-metadata==0.17',
+    'importlib-metadata==0.18',
     'pluggy==0.11.0',
     'fuzzywuzzy>=0.17.0',
 ]
