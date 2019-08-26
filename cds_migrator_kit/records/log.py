@@ -122,11 +122,13 @@ class JsonLogger(object):
     def add_log(self, exc, key=None, value=None, output=None, rectype=None):
         """Add exception log."""
         all_stats = JsonLogger().render_stats()
+        recid = output.get('recid', None)
+        if not recid:
+            recid = output.get('legacy_recid', None)
         with open(self.LOG_FILEPATH, "w+") as f:
-            record_stats = JsonLogger.get_stat_by_recid(output['recid'],
-                                                        all_stats)
+            record_stats = JsonLogger.get_stat_by_recid(recid, all_stats)
             if not record_stats:
-                record_stats = {'recid': output['recid'],
+                record_stats = {'recid': recid,
                                 'record_type': rectype,
                                 'manual_migration': [],
                                 'unexpected_value': [],

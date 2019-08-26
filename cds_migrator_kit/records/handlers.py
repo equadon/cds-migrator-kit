@@ -24,8 +24,13 @@ def migration_exception_handler(exc, output, key, value, **kwargs):
     :param value: MARC field value
     :return:
     """
+    recid = output.get('recid', None)
+    if not recid and 'legacy_recid' in output:
+        recid = output['legacy_recid']
+    else:
+        recid = 'no recid found'
     logger.error(
         '#RECID: #{0} - {1}  MARC FIELD: *{2}*, input value: {3}, -> {4}, '
-        .format(output['recid'], exc.message, key, value, output)
+        .format(recid, exc.message, key, value, output)
     )
     JsonLogger().add_log(exc, key, value, output, **kwargs)
