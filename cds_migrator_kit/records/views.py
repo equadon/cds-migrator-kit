@@ -40,10 +40,21 @@ def index():
 @blueprint.route("/results")
 def results():
     """Render a basic view."""
-    all_stats = JsonLogger().render_stats()
+    return render_template("cds_migrator_kit_records/index.html", rectype=None)
+
+
+@blueprint.route("/results/<rectype>")
+def results_rectype(rectype=None):
+    """Render a basic view."""
+    logger = JsonLogger.get_json_logger(rectype)
+    logger.load()
     return render_template(
-        "cds_migrator_kit_records/index.html",
-        results=all_stats)
+        "cds_migrator_kit_records/{}.html".format(rectype),
+        stats_sorted_by_key=[logger.stats[stat] for stat in sorted(logger.stats.keys())],
+        stats=logger.stats,
+        records=logger.records,
+        rectype=rectype
+    )
 
 
 @blueprint.route('/record/<rectype>/<recid>')

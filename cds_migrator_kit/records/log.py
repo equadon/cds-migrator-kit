@@ -58,7 +58,7 @@ class JsonLogger(object):
         if rectype == 'serial':
             return SerialJsonLogger()
         else:
-            return DocumentJsonLogger()
+            raise Exception('Invalid rectype: {}'.format(rectype))
 
     def __init__(self, log_filename):
         """Constructor."""
@@ -238,15 +238,17 @@ class SerialJsonLogger(JsonLogger):
                 if title1 == title2:
                     continue
                 if same_issn(stat1_obj, stat2_obj):
-                    import ipdb; ipdb.set_trace()
-                    stat1_obj['similars']['same_issn'].append(title2)
-                    stat2_obj['similars']['same_issn'].append(title1)
+                    if title2 not in stat1_obj['similars']['same_issn']:
+                        stat1_obj['similars']['same_issn'].append(title2)
+                    if title1 not in stat2_obj['similars']['same_issn']:
+                        stat2_obj['similars']['same_issn'].append(title1)
                 else:
                     ratio = compare_titles(title1, title2)
                     if 95 <= ratio < 100:
-                        import ipdb; ipdb.set_trace()
-                        stat1_obj['similars']['similar_title'].append(title2)
-                        stat2_obj['similars']['similar_title'].append(title1)
+                        if title2 not in stat1_obj['similars']['similar_title']:
+                            stat1_obj['similars']['similar_title'].append(title2)
+                        if title1 not in stat2_obj['similars']['similar_title']:
+                            stat2_obj['similars']['similar_title'].append(title1)
 
     def save(self):
         self._add_children()
