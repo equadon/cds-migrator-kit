@@ -12,25 +12,27 @@ import logging
 
 from .log import JsonLogger
 
-logger = logging.getLogger('migrator')
+cli_logger = logging.getLogger('migrator')
 
 
-def migration_exception_handler(exc, output, key, value, **kwargs):
-    """Migration exception handling - log to files.
+def migration_exception_handler(logger):
+    def inner(exc, output, key, value, **kwargs):
+        """Migration exception handling - log to files.
 
-    :param exc: exception
-    :param output: generated output version
-    :param key: MARC field ID
-    :param value: MARC field value
-    :return:
-    """
-    recid = output.get('recid', None)
-    if not recid and 'legacy_recid' in output:
-        recid = output['legacy_recid']
-    else:
-        recid = 'no recid found'
-    logger.error(
-        '#RECID: #{0} - {1}  MARC FIELD: *{2}*, input value: {3}, -> {4}, '
-        .format(recid, exc.message, key, value, output)
-    )
-    JsonLogger().add_log(exc, key, value, output, **kwargs)
+        :param exc: exception
+        :param output: generated output version
+        :param key: MARC field ID
+        :param value: MARC field value
+        :return:
+        """
+        recid = output.get('recid', None)
+        if not recid and 'legacy_recid' in output:
+            recid = output['legacy_recid']
+        else:
+            recid = 'no recid found'
+        cli_logger.error(
+            '#RECID: #{0} - {1}  MARC FIELD: *{2}*, input value: {3}, -> {4}, '
+            .format(recid, exc.message, key, value, output)
+        )
+        logger.add_log(exc, key, value, output, **kwargs)
+    return inner

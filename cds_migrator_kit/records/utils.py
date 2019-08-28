@@ -71,6 +71,10 @@ def prepare_serials(serial, logger, rectype, item):
     return split_serials(serial, logger, rectype, item)
 
 
+def compare_titles(title1, title2):
+    return fuzz.ratio(title1, title2)
+
+
 def check_for_duplicated_serials(serial, i=None):
     """Check if the serial already exists."""
     _logs_path = current_app.config['CDS_MIGRATOR_KIT_LOGS_PATH']
