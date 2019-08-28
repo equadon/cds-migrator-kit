@@ -57,6 +57,10 @@ class JsonLogger(object):
     def get_json_logger(cls, rectype):
         if rectype == 'serial':
             return SerialJsonLogger()
+        elif rectype == 'document':
+            return DocumentJsonLogger()
+        elif rectype == 'multipart':
+            return MultipartJsonLogger()
         else:
             raise Exception('Invalid rectype: {}'.format(rectype))
 
@@ -87,28 +91,17 @@ class JsonLogger(object):
         with open(self.RECORD_FILEPATH, "w") as f:
             json.dump(self.records, f)
 
-
-    def create_output_file(self, file, output):
-        """Create json preview output file."""
-        try:
-            filename = os.path.join(
-                current_app.config['CDS_MIGRATOR_KIT_LOGS_PATH'],
-                "{0}/{1}.json".format(output['_migration']['record_type'],
-                                      file))
-            with open(filename, "w+") as f:
-                json.dump(output, f, indent=2)
-        except Exception as e:
-            raise e
-
-    def add_recid_to_stats(self, recid):
+    def add_recid_to_stats(self, recid, **kwargs):
         pass
 
-    def add_record(self, record):
+    def add_record(self, record, **kwargs):
         pass
 
     def add_log(self, exc, key=None, value=None, output=None):
         """Add exception log."""
         recid = output.get('recid', None)
+        if not recid:
+            recid = output.get('legacy_recid', None)
         self.resolve_error_type(exc, recid, key, value)
 
     def resolve_error_type(self, exc, recid, key, value):
@@ -137,7 +130,7 @@ class DocumentJsonLogger(JsonLogger):
     """Log migration statistic to file controller."""
 
     def __init__(self):
-        super().__init__('stats_document.json', 'records_document.json')
+        super().__init__('document_stats.json', 'document_records.json')
 
     def add_recid_to_stats(self, recid):
         """Add empty log item."""
@@ -154,18 +147,59 @@ class DocumentJsonLogger(JsonLogger):
     def add_record(self, record):
         self.records[record['recid']] = record
 
-def same_issn(obj1, obj2):
-    return obj1['issn'] is not None and obj2['issn'] is not None and obj1['issn'] == obj2['issn']
+class MultipartJsonLogger(JsonLogger):
+    """Log multipart statistics to file."""
 
-def compare_titles(title1, title2):
-    return fuzz.ratio(title1, title2)
+    def __init__(self):
+        super().__init__('multipart_stats.json', 'multipart_records.json')
+        self.document_pid = 0
+
+    def next_doc_pid(self):
+        self.document_pid += 1
+        return self.document_pid
+
+    def add_recid_to_stats(self, recid):
+        """Add empty log item."""
+        if recid not in self.stats:
+            self.stats[recid] = {
+                'recid': recid,
+                'manual_migration': [],
+                'unexpected_value': [],
+                'missing_required_field': [],
+                'lost_data': [],
+                'volumes': [],
+                'clean': True,
+            }
+
+    def _create_document(self, obj, recid):
+        return {
+            '$schema': 'https://127.0.0.1:5000/schemas/documents/document-v1.0.0.json',
+            '_migration': {
+                'record_type': 'document',
+                'multipart_legacy_recid': recid,
+            },
+            **obj,
+        }
+
+    def add_record(self, record):
+        """Add log record."""
+        recid = record['recid']
+        self.records[recid] = record
+
+        # Create new document records (volumes)
+        for obj in record['_migration']['volumes']:
+            doc_pid = 'doc-{}'.format(self.next_doc_pid())
+            document = self._create_document(obj, recid)
+            self.stats[recid]['volumes'].append(doc_pid)
+            self.records[doc_pid] = document
+
 
 class SerialJsonLogger(JsonLogger):
     """Log migration statistic to file controller."""
 
     def __init__(self):
         """Constructor."""
-        super().__init__('stats_serial.json', 'records_serial.json')
+        super().__init__('serial_stats.json', 'serial_records.json')
 
     def add_log(self, exc, key=None, value=None, output=None):
         pass
@@ -207,26 +241,6 @@ class SerialJsonLogger(JsonLogger):
             self._add_to_stats(record)
             self._add_to_record(record)
 
-    def resolve_error_type(self, exc, rec_stats, key, value):
-        """Check the type of exception and log to dict."""
-        rec_stats['clean'] = False
-        if isinstance(exc, ManualMigrationRequired):
-            rec_stats['manual_migration'].append(key)
-        elif isinstance(exc, UnexpectedValue):
-            rec_stats['unexpected_value'].append((key, value))
-        elif isinstance(exc, MissingRequiredField):
-            rec_stats['missing_required_field'].append(key)
-        elif isinstance(exc, LossyConversion):
-            rec_stats['lost_data'] = list(exc.missing)
-        elif isinstance(exc, KeyError):
-            rec_stats['unexpected_value'].append(str(exc))
-        elif isinstance(exc, TypeError) or isinstance(exc, AttributeError):
-            rec_stats['unexpected_value'].append(
-                "Model definition missing for this record."
-                " Contact CDS team to tune the query")
-        else:
-            raise exc
-
     def _add_children(self):
         for record in self.records.values():
             record['_migration']['children'] = self.stats[record['title']['title']]['documents']
@@ -237,13 +251,13 @@ class SerialJsonLogger(JsonLogger):
             for title2, stat2_obj in items:
                 if title1 == title2:
                     continue
-                if same_issn(stat1_obj, stat2_obj):
+                if self.same_issn(stat1_obj, stat2_obj):
                     if title2 not in stat1_obj['similars']['same_issn']:
                         stat1_obj['similars']['same_issn'].append(title2)
                     if title1 not in stat2_obj['similars']['same_issn']:
                         stat2_obj['similars']['same_issn'].append(title1)
                 else:
-                    ratio = compare_titles(title1, title2)
+                    ratio = self.compare_titles(title1, title2)
                     if 95 <= ratio < 100:
                         if title2 not in stat1_obj['similars']['similar_title']:
                             stat1_obj['similars']['similar_title'].append(title2)
@@ -254,6 +268,14 @@ class SerialJsonLogger(JsonLogger):
         self._add_children()
         self._match_similar()
         super().save()
+
+    @staticmethod
+    def same_issn(obj1, obj2):
+        return obj1['issn'] is not None and obj2['issn'] is not None and obj1['issn'] == obj2['issn']
+
+    @staticmethod
+    def compare_titles(title1, title2):
+        return fuzz.ratio(title1, title2)
 
 
 # class RecordJsonLogger(object):
