@@ -29,12 +29,16 @@
         </td>
         <td>
           {% for title in stat.similars.same_issn %}
-            <a href="https://cds.cern.ch/record/{{ stats[title].documents[0] }}">"{{ title }}"</a>,<br />
+            {% for recid in stats[title].documents %}
+              <a href="https://cds.cern.ch/record/{{ recid }}">"{{ title }}"</a>,<br />
+            {% endfor %}
           {% endfor %}
         </td>
         <td>
           {% for title in stat.similars.similar_title %}
-            <a href="https://cds.cern.ch/record/{{ stats[title].documents[0] }}">"{{ title }}"</a>,<br />
+            {% for recid in stats[title].documents %}
+              <a href="https://cds.cern.ch/record/{{ recid }}">"{{ title }}"</a>,<br />
+            {% endfor %}
           {% endfor %}
         </td>
       </tr>

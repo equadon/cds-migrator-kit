@@ -60,13 +60,13 @@ class JsonLogger(object):
         else:
             raise Exception('Invalid rectype: {}'.format(rectype))
 
-    def __init__(self, log_filename):
+    def __init__(self, stats_filename, records_filename):
         """Constructor."""
         self._logs_path = current_app.config['CDS_MIGRATOR_KIT_LOGS_PATH']
         self.stats = {}
         self.records = {}
-        self.STAT_FILEPATH = os.path.join(self._logs_path, log_filename)
-        self.RECORD_FILEPATH = os.path.join(self._logs_path, 'records.json')
+        self.STAT_FILEPATH = os.path.join(self._logs_path, stats_filename)
+        self.RECORD_FILEPATH = os.path.join(self._logs_path, records_filename)
 
         if not os.path.exists(self._logs_path):
             os.makedirs(self._logs_path)
@@ -137,7 +137,7 @@ class DocumentJsonLogger(JsonLogger):
     """Log migration statistic to file controller."""
 
     def __init__(self):
-        super().__init__('stats_document.json')
+        super().__init__('stats_document.json', 'records_document.json')
 
     def add_recid_to_stats(self, recid):
         """Add empty log item."""
@@ -165,7 +165,7 @@ class SerialJsonLogger(JsonLogger):
 
     def __init__(self):
         """Constructor."""
-        super().__init__('stats_serial.json')
+        super().__init__('stats_serial.json', 'records_serial.json')
 
     def add_log(self, exc, key=None, value=None, output=None):
         pass
