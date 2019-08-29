@@ -17,8 +17,6 @@ from cds_dojson.marc21.models.books.serial import model as serial_model
 from flask import current_app
 from flask.cli import with_appcontext
 
-from cds_migrator_kit.records.utils import prepare_serials
-
 from .errors import LossyConversion
 from .log import JsonLogger
 from .records import CDSRecordDump
@@ -48,19 +46,6 @@ def load_records(sources, source_type, eager, model=None, rectype=None):
                 logger.add_recid_to_stats(item['recid'])
                 try:
                     dump.prepare_revisions()
-                    # file_prefix = ''
-                    # if rectype:
-                    #     file_prefix = '{0}_'.format(rectype)
-                    # if rectype == 'serial':
-                    #     serials = prepare_serials(dump.revisions[-1][1],
-                    #                               logger, rectype, item)
-                    #     cli_logger.info('{0} serials created of record {1}'
-                    #                     .format(serials, item['recid']))
-
-                    # else:
-                    #     logger.create_output_file(
-                    #         file_prefix + str(item['recid']),
-                    #         dump.revisions[-1][1])
                     logger.add_record(dump.revisions[-1][1])
 
                 except LossyConversion as e:
@@ -112,7 +97,7 @@ def report():
     '--rectype',
     '-x',
     help='Type of record to load (f.e serial).',
-    default=None)
+    default='document')
 @with_appcontext
 def dryrun(sources, source_type, recid, rectype, model=None):
     """Load records migration dump."""

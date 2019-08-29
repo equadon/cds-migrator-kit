@@ -38,7 +38,7 @@ class CDSRecordDump(RecordDump):
                  dojson_model=marc21,
                  logger=None):
         """Initialize."""
-        super(self.__class__, self).__init__(data, source_type, latest_only,
+        super().__init__(data, source_type, latest_only,
                                              pid_fetchers, dojson_model)
         self.logger = logger
         cli_logger.info('\n=====#RECID# {0} INIT=====\n'.format(data['recid']))

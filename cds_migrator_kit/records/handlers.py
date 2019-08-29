@@ -25,14 +25,9 @@ def migration_exception_handler(logger):
         :param value: MARC field value
         :return:
         """
-        recid = output.get('recid', None)
-        if not recid and 'legacy_recid' in output:
-            recid = output['legacy_recid']
-        else:
-            recid = 'no recid found'
         cli_logger.error(
             '#RECID: #{0} - {1}  MARC FIELD: *{2}*, input value: {3}, -> {4}, '
-            .format(recid, exc.message, key, value, output)
+            .format(output['recid'], exc.message, key, value, output)
         )
         logger.add_log(exc, key, value, output, **kwargs)
     return inner
